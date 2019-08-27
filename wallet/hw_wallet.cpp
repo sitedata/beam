@@ -82,6 +82,11 @@ namespace beam
             }
         }
 
+        void getConnectedList() const
+        {
+
+        }
+
         ~HWWalletImpl()
         {
             
@@ -321,6 +326,31 @@ namespace beam
 
     HWWallet::HWWallet() 
         : m_impl(std::make_shared<HWWalletImpl>()) {}
+
+    std::vector<std::string> HWWallet::getDevices()
+    {
+        Client client;
+
+        auto devices = client.enumerate();
+        std::vector<std::string> items;
+
+        if (devices.size() == 0)
+        {
+            return items;
+        }
+
+        for (auto device : devices)
+        {
+            items.push_back((std::stringstream() 
+                << "Trezor(device.path=" << device.path 
+                << ",product=" << device.product 
+                << ",session=" << device.session 
+                << ",vendor=" << device.vendor 
+                << ")").str());
+        }
+
+        return items;
+    }
 
     void HWWallet::getOwnerKey(Result<std::string> callback) const
     {

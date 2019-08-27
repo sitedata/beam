@@ -821,7 +821,78 @@ Item
             id: createTrezorWalletEntry
             Rectangle
             {
-                color: Style.background_main               
+                color: Style.background_main
+                ColumnLayout {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.fill: parent
+                    anchors.topMargin: 50
+
+                    Column {
+                        spacing: 30
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+
+                        SFText {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            horizontalAlignment: Qt.AlignHCenter
+                            text: "Init wallet with Trezor"
+                            color: Style.content_main
+                            font.pixelSize: 36
+                        }
+
+                        SFText {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            horizontalAlignment: Qt.AlignHCenter
+                            text: viewModel.isTrezorConnected 
+                                ? "Found device: " + viewModel.trezorDeviceName
+                                : "There is no device connected, please, connect your hardware wallet."
+                            color: Style.content_main
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: 14
+                        }
+                    }
+
+                    Item {
+                        Layout.fillHeight: true
+                    }
+
+                    Row {
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: 30
+
+                        CustomButton {
+                            //% "Back"
+                            text: qsTrId("general-back")
+                            icon.source: "qrc:/assets/icon-back.svg"
+                            onClicked: startWizzardView.pop();
+                        }
+
+                        PrimaryButton {
+                            id: nextButton
+                            enabled: viewModel.isTrezorConnected
+                            //% "Next"
+                            text: qsTrId("general-next")
+                            icon.source: "qrc:/assets/icon-next-blue.svg"
+                            onClicked: startWizzardView.push(importTrezorOwnerKey);
+                        }
+                    }
+
+                    Item {
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: 67
+                        Layout.maximumHeight: 143
+                    }
+
+                    SFText {
+                        Layout.alignment:    Qt.AlignHCenter
+                        font.pixelSize:      12
+                        color:               Qt.rgba(255, 255, 255, 0.3)
+                        text:                [qsTrId("settings-version"), BeamGlobals.version()].join(' ')
+                    }
+
+                    Item {
+                        Layout.minimumHeight: 35
+                    }
+                }
             }
         }
 
@@ -1118,6 +1189,87 @@ Item
                             }
                             icon.source: "qrc:/assets/icon-next-blue.svg"
                             onClicked: startWizzardView.push(create);
+                        }
+                    }
+
+                    Item {
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: 67
+                        Layout.maximumHeight: 143
+                    }
+
+                    SFText {
+                        Layout.alignment:    Qt.AlignHCenter
+                        font.pixelSize:      12
+                        color:               Qt.rgba(255, 255, 255, 0.3)
+                        text:                [qsTrId("settings-version"), BeamGlobals.version()].join(' ')
+                    }
+
+                    Item {
+                        Layout.minimumHeight: 35
+                    }
+                }
+            }
+        }
+
+        Component {
+            id: importTrezorOwnerKey
+            Rectangle {
+                color: Style.background_main
+                property Item defaultFocusItem: null
+
+                ColumnLayout {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.fill: parent
+                    anchors.topMargin: 50
+                    Column {
+                        spacing: 30
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                        Layout.preferredWidth: 730
+                        SFText {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            horizontalAlignment: Qt.AlignHCenter
+                            text: "Import Trezor Owner Key"
+                            color: Style.content_main
+                            font.pixelSize: 36
+                        }
+                        SFText {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            horizontalAlignment: Qt.AlignHCenter
+                            text: "Please, enter the PIN code to decrypt your Owner Key."
+                            color: Style.content_main
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: 14
+                        }
+                    }
+ 
+                    Item {
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: 120
+                    }
+
+                    Row {
+                        Layout.alignment: Qt.AlignHCenter
+
+                        spacing: 30
+
+                        CustomButton {
+                            //% "Back"
+                            text: qsTrId("general-back")
+                            icon.source: "qrc:/assets/icon-back.svg"
+                            onClicked: {
+                                startWizzardView.pop();
+                            }
+                        }
+
+                        PrimaryButton {
+                            id: checkRecoveryNextButton
+                            //% "Next"
+                            text: qsTrId("general-next")
+                            enabled: false
+                            icon.source: "qrc:/assets/icon-next-blue.svg"
+                            //onClicked: startWizzardView.push(create);
                         }
                     }
 

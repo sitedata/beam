@@ -19,6 +19,7 @@
 #include <QObject>
 #include <QDateTime>
 #include <QQmlListProperty>
+#include <QTimer>
 
 #include "wallet/wallet_db.h"
 #include "mnemonic/mnemonic.h"
@@ -101,7 +102,9 @@ class StartViewModel : public QObject
     Q_PROPERTY(QList<QObject*> recoveryPhrases READ getRecoveryPhrases NOTIFY recoveryPhrasesChanged)
     Q_PROPERTY(QList<QObject*> checkPhrases READ getCheckPhrases NOTIFY checkPhrasesChanged)
     Q_PROPERTY(QChar phrasesSeparator READ getPhrasesSeparator CONSTANT)
-    Q_PROPERTY(bool isTrezorEnabled READ isTrezorEnabled)
+    Q_PROPERTY(bool isTrezorEnabled READ isTrezorEnabled CONSTANT)
+    Q_PROPERTY(bool isTrezorConnected READ isTrezorConnected NOTIFY isTrezorConnectedChanged)
+    Q_PROPERTY(QString trezorDeviceName READ getTrezorDeviceName NOTIFY trezorDeviceNameChanged)
 
     Q_PROPERTY(int localPort READ getLocalPort CONSTANT)
     Q_PROPERTY(QString remoteNodeAddress READ getRemoteNodeAddress CONSTANT)
@@ -119,6 +122,8 @@ public:
 
     bool walletExists() const;
     bool isTrezorEnabled() const;
+    bool isTrezorConnected() const;
+    QString getTrezorDeviceName() const;
     bool getIsRecoveryMode() const;
     void setIsRecoveryMode(bool value);
     const QList<QObject*>& getRecoveryPhrases();
@@ -159,12 +164,19 @@ signals:
     void isRecoveryModeChanged();
     void capsLockStateMayBeChanged();
     void validateDictionaryChanged();
+    void isTrezorConnectedChanged();
+    void trezorDeviceNameChanged();
+
 public slots:
     bool createWallet();
     bool openWallet(const QString& pass);
     bool checkWalletPassword(const QString& password) const;
     void setPassword(const QString& pass);
     void onNodeSettingsChanged();
+
+#if defined(BEAM_HW_WALLET)
+    void checkTrezor();
+#endif
 
 private:
 
@@ -179,4 +191,9 @@ private:
 
     bool m_isRecoveryMode;
     bool m_validateDictionary = true;
+
+#if defined(BEAM_HW_WALLET)
+    QTimer m_trezorTimer;
+    bool m_isTrezorConnected = false;
+#endif
 };

@@ -28,6 +28,8 @@ namespace beam
     public:
         HWWallet();
 
+        static std::vector<std::string> getDevices();
+
         template<typename T> using Result = std::function<void(const T& key)>;
 
         struct TxData

@@ -252,6 +252,9 @@ bool WalletDBPathItem::isPreferred() const
 
 StartViewModel::StartViewModel()
     : m_isRecoveryMode{false}
+#if defined(BEAM_HW_WALLET)
+    , m_trezorTimer(this)
+#endif
 {
     if (!walletExists())
     {
@@ -259,6 +262,11 @@ StartViewModel::StartViewModel()
         findExistingWalletDB();
         removeNodeDataIfNeeded();
     }
+
+#if defined(BEAM_HW_WALLET)
+    connect(&m_trezorTimer, SIGNAL(timeout()), this, SLOT(checkTrezor()));
+    m_trezorTimer.start(1000);
+#endif
 }
 
 StartViewModel::~StartViewModel()
@@ -278,6 +286,40 @@ bool StartViewModel::isTrezorEnabled() const
 #else
     return false;
 #endif
+}
+
+#if defined(BEAM_HW_WALLET)
+#include "wallet/hw_wallet.h"
+#endif
+
+bool StartViewModel::isTrezorConnected() const
+{
+#if defined(BEAM_HW_WALLET)
+    return m_isTrezorConnected;
+#else
+    return false;
+#endif
+}
+
+#if defined(BEAM_HW_WALLET)
+void StartViewModel::checkTrezor()
+{
+    bool foundDevice = !HWWallet::getDevices().empty();
+
+    if (m_isTrezorConnected != foundDevice)
+    {
+        m_isTrezorConnected = foundDevice;
+        emit isTrezorConnectedChanged();
+        emit trezorDeviceNameChanged();
+    }
+}
+#endif
+
+QString StartViewModel::getTrezorDeviceName() const
+{
+    auto devices = HWWallet::getDevices();
+    assert(!devices.empty());
+    return QString(devices[0].c_str());
 }
 
 bool StartViewModel::getIsRecoveryMode() const
