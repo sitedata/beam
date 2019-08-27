@@ -19,6 +19,9 @@
 #include "core/ecc_native.h"
 #include "core/block_crypt.h"
 
+class Client;
+class DeviceManager;
+
 namespace beam
 {
     class HWWalletImpl;
@@ -28,7 +31,9 @@ namespace beam
     public:
         HWWallet();
 
-        static std::vector<std::string> getDevices();
+        using Ptr = std::shared_ptr<beam::HWWallet>;
+
+        std::vector<std::string> getDevices() const;
 
         template<typename T> using Result = std::function<void(const T& key)>;
 
@@ -58,5 +63,7 @@ namespace beam
 
     private:
         std::shared_ptr<HWWalletImpl> m_impl;
+        std::shared_ptr<Client> m_client;
+        std::shared_ptr<DeviceManager> m_trezor;
     };
 }

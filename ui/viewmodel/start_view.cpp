@@ -253,7 +253,9 @@ bool WalletDBPathItem::isPreferred() const
 StartViewModel::StartViewModel()
     : m_isRecoveryMode{false}
 #if defined(BEAM_HW_WALLET)
+    , m_hwWallet(make_shared<beam::HWWallet>())
     , m_trezorTimer(this)
+    , m_trezorThread(m_hwWallet)
 #endif
 {
     if (!walletExists())
@@ -264,6 +266,7 @@ StartViewModel::StartViewModel()
     }
 
 #if defined(BEAM_HW_WALLET)
+    connect(&m_trezorThread, SIGNAL(ownerKeyImported(const QString&)), this, SLOT(onTrezorOwnerKeyImported(const QString&)));
     connect(&m_trezorTimer, SIGNAL(timeout()), this, SLOT(checkTrezor()));
     m_trezorTimer.start(1000);
 #endif
@@ -304,7 +307,7 @@ bool StartViewModel::isTrezorConnected() const
 #if defined(BEAM_HW_WALLET)
 void StartViewModel::checkTrezor()
 {
-    bool foundDevice = !HWWallet::getDevices().empty();
+    bool foundDevice = !m_hwWallet->getDevices().empty();
 
     if (m_isTrezorConnected != foundDevice)
     {
@@ -313,13 +316,62 @@ void StartViewModel::checkTrezor()
         emit trezorDeviceNameChanged();
     }
 }
-#endif
 
 QString StartViewModel::getTrezorDeviceName() const
 {
-    auto devices = HWWallet::getDevices();
+    auto devices = m_hwWallet->getDevices();
     assert(!devices.empty());
     return QString(devices[0].c_str());
+}
+
+bool StartViewModel::isOwnerKeyImported() const
+{
+    return !m_ownerKeyEncrypted.empty();
+}
+
+TrezorThread::TrezorThread(beam::HWWallet::Ptr hw)
+    : m_hw(hw)
+{
+
+}
+
+void TrezorThread::run()
+{
+    auto key = m_hw->getOwnerKeySync();
+    emit ownerKeyImported(QString(key.c_str()));
+}
+
+void StartViewModel::onTrezorOwnerKeyImported(const QString& key)
+{
+    m_ownerKeyEncrypted = key.toStdString();
+    LOG_INFO() << "Trezor Key imported: " << m_ownerKeyEncrypted;
+
+    emit isOwnerKeyImportedChanged();
+}
+
+#endif
+
+void StartViewModel::startOwnerKeyImporting()
+{
+    m_trezorThread.start();
+}
+
+#include "core/block_rw.h"
+
+// !TODO: very slow operation, should be excluded
+bool StartViewModel::isPinValid(const QString& pin)
+{
+    if (pin.isEmpty())
+        return false;
+
+    KeyString ks;
+    ks.SetPassword(Blob(pin.data(), static_cast<uint32_t>(pin.size())));
+
+    ks.m_sRes = m_ownerKeyEncrypted;
+
+    std::shared_ptr<ECC::HKdfPub> pKdf = std::make_shared<ECC::HKdfPub>();
+
+    return ks.Import(*pKdf);
 }
 
 bool StartViewModel::getIsRecoveryMode() const

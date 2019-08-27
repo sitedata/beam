@@ -872,7 +872,10 @@ Item
                             //% "Next"
                             text: qsTrId("general-next")
                             icon.source: "qrc:/assets/icon-next-blue.svg"
-                            onClicked: startWizzardView.push(importTrezorOwnerKey);
+                            onClicked: {
+                                viewModel.startOwnerKeyImporting();
+                                startWizzardView.push(importTrezorOwnerKey);
+                            }
                         }
                     }
 
@@ -1237,13 +1240,26 @@ Item
                             anchors.left: parent.left
                             anchors.right: parent.right
                             horizontalAlignment: Qt.AlignHCenter
-                            text: "Please, enter the PIN code to decrypt your Owner Key."
+                            text: viewModel.isOwnerKeyImported 
+                                ? "Owner Key imported.\nPlease, enter the PIN code you used on device to decrypt your Owner Key."
+                                : "Please, look at your Trezor to complete actions..."
                             color: Style.content_main
                             wrapMode: Text.WordWrap
                             font.pixelSize: 14
                         }
+
+                        SFTextInput {
+                            id:trezorPin
+                            width: 400
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            visible: viewModel.isOwnerKeyImported
+                            font.pixelSize: 14
+                            color: Style.content_main
+                            echoMode: TextInput.Password
+                        }
                     }
- 
+
+
                     Item {
                         Layout.fillHeight: true
                         Layout.minimumHeight: 120
@@ -1257,6 +1273,7 @@ Item
                         CustomButton {
                             //% "Back"
                             text: qsTrId("general-back")
+                            enabled: viewModel.isOwnerKeyImported
                             icon.source: "qrc:/assets/icon-back.svg"
                             onClicked: {
                                 startWizzardView.pop();
@@ -1267,7 +1284,7 @@ Item
                             id: checkRecoveryNextButton
                             //% "Next"
                             text: qsTrId("general-next")
-                            enabled: false
+                            enabled: viewModel.isOwnerKeyImported && viewModel.isPinValid(trezorPin.text)
                             icon.source: "qrc:/assets/icon-next-blue.svg"
                             //onClicked: startWizzardView.push(create);
                         }

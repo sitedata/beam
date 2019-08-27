@@ -40,46 +40,6 @@ namespace beam
     public:
         HWWalletImpl()
         {
-            auto enumerates = m_client.enumerate();
-
-            if (enumerates.size() == 0)
-            {
-                LOG_INFO() << "there is no device connected";
-                return;
-            }
-
-            auto& enumerate = enumerates.front();
-
-            {
-                m_trezor = std::make_unique<DeviceManager>();
-
-                if (enumerate.session != "null")
-                {
-                    m_client.release(enumerate.session);
-                    enumerate.session = "null";
-                }
-
-                m_trezor->callback_Failure([&](const Message &msg, std::string session, size_t queue_size)
-                {
-                    // !TODO: handle errors here
-                    LOG_ERROR() << "FAIL REASON: " << child_cast<Message, Failure>(msg).message();
-                });
-
-                m_trezor->callback_Success([&](const Message &msg, std::string session, size_t queue_size)
-                {
-                    LOG_INFO() << "SUCCESS: " << child_cast<Message, Success>(msg).message();
-                });
-
-                try
-                {
-                    m_trezor->init(enumerate);
-                    //m_trezor->call_Ping("hello beam", true);
-                }
-                catch (std::runtime_error e)
-                {
-                    LOG_ERROR() << e.what();
-                }
-            }
         }
 
         void getConnectedList() const
@@ -90,30 +50,6 @@ namespace beam
         ~HWWalletImpl()
         {
             
-        }
-
-        void getOwnerKey(HWWallet::Result<std::string> callback)
-        {
-            if (m_trezor)
-            {
-                std::atomic_flag m_runningFlag;
-                m_runningFlag.test_and_set();
-                std::string result;
-
-                m_trezor->call_BeamGetOwnerKey(true, [&m_runningFlag, &result](const Message &msg, std::string session, size_t queue_size)
-                {
-                    result = child_cast<Message, hw::trezor::messages::beam::BeamOwnerKey>(msg).key();
-                    m_runningFlag.clear();
-                });
-
-                while (m_runningFlag.test_and_set());
-
-                callback(result);
-            }
-            else
-            {
-                LOG_ERROR() << "HW wallet not initialized";
-            }
         }
 
         void generateNonce(uint8_t slot, HWWallet::Result<ECC::Point> callback)
@@ -325,19 +261,55 @@ namespace beam
     };
 
     HWWallet::HWWallet() 
-        : m_impl(std::make_shared<HWWalletImpl>()) {}
-
-    std::vector<std::string> HWWallet::getDevices()
+        : m_impl(std::make_shared<HWWalletImpl>())
+        , m_client(std::make_shared<Client>())
+        , m_trezor(std::make_shared<DeviceManager>())
+    
     {
-        Client client;
+        auto enumerates = m_client->enumerate();
 
-        auto devices = client.enumerate();
+        if (enumerates.empty())
+        {
+            LOG_INFO() << "there is no Trezor device connected";
+            return;
+        }
+
+        auto& enumerate = enumerates.front();
+
+        if (enumerate.session != "null")
+        {
+            m_client->release(enumerate.session);
+            enumerate.session = "null";
+        }
+
+        m_trezor->callback_Failure([&](const Message& msg, std::string session, size_t queue_size)
+        {
+            // !TODO: handle errors here
+            LOG_ERROR() << "FAIL REASON: " << child_cast<Message, Failure>(msg).message();
+        });
+
+        m_trezor->callback_Success([&](const Message& msg, std::string session, size_t queue_size)
+        {
+            LOG_INFO() << "SUCCESS: " << child_cast<Message, Success>(msg).message();
+        });
+
+        try
+        {
+            m_trezor->init(enumerate);
+        }
+        catch (std::runtime_error e)
+        {
+            LOG_ERROR() << e.what();
+        }
+    }
+
+    std::vector<std::string> HWWallet::getDevices() const
+    {
+        auto devices = m_client->enumerate();
         std::vector<std::string> items;
 
-        if (devices.size() == 0)
-        {
+        if (devices.empty())
             return items;
-        }
 
         for (auto device : devices)
         {
@@ -354,7 +326,21 @@ namespace beam
 
     void HWWallet::getOwnerKey(Result<std::string> callback) const
     {
-        m_impl->getOwnerKey(callback);
+        assert(m_trezor);
+
+        std::atomic_flag m_runningFlag;
+        m_runningFlag.test_and_set();
+        std::string result;
+
+        m_trezor->call_BeamGetOwnerKey(true, [&m_runningFlag, &result](const Message& msg, std::string session, size_t queue_size)
+        {
+            result = child_cast<Message, hw::trezor::messages::beam::BeamOwnerKey>(msg).key();
+            m_runningFlag.clear();
+        });
+
+        while (m_runningFlag.test_and_set());
+
+        callback(result);
     }
 
     void HWWallet::generateNonce(uint8_t slot, Result<ECC::Point> callback) const
