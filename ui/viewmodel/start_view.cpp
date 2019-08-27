@@ -271,6 +271,15 @@ bool StartViewModel::walletExists() const
     return wallet::WalletDB::isInitialized(AppModel::getInstance().getSettings().getWalletStorage());
 }
 
+bool StartViewModel::isTrezorEnabled() const
+{
+#if defined(BEAM_HW_WALLET)
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool StartViewModel::getIsRecoveryMode() const
 {
     return m_isRecoveryMode;

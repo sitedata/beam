@@ -101,6 +101,7 @@ class StartViewModel : public QObject
     Q_PROPERTY(QList<QObject*> recoveryPhrases READ getRecoveryPhrases NOTIFY recoveryPhrasesChanged)
     Q_PROPERTY(QList<QObject*> checkPhrases READ getCheckPhrases NOTIFY checkPhrasesChanged)
     Q_PROPERTY(QChar phrasesSeparator READ getPhrasesSeparator CONSTANT)
+    Q_PROPERTY(bool isTrezorEnabled READ isTrezorEnabled)
 
     Q_PROPERTY(int localPort READ getLocalPort CONSTANT)
     Q_PROPERTY(QString remoteNodeAddress READ getRemoteNodeAddress CONSTANT)
@@ -117,6 +118,7 @@ public:
     ~StartViewModel();
 
     bool walletExists() const;
+    bool isTrezorEnabled() const;
     bool getIsRecoveryMode() const;
     void setIsRecoveryMode(bool value);
     const QList<QObject*>& getRecoveryPhrases();

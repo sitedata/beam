@@ -210,17 +210,37 @@ Item
                                     visible: startWizzardView.depth > 1
                                 }
 
-                                PrimaryButton {
-                                    id: createNewWallet
-                                    //% "Create new wallet"
-                                    text: qsTrId("general-create-wallet")
-                                    Layout.preferredHeight: 38
-                                    icon.source: "qrc:/assets/icon-add-blue.svg"
-                                    onClicked: 
-                                    {
-                                        viewModel.isRecoveryMode = false;
-                                        startWizzardView.push(createWalletEntry);
+                                ColumnLayout {
+                                    spacing: 20
+
+                                    PrimaryButton {
+                                        id: createNewWallet
+                                        //% "Create new wallet"
+                                        text: qsTrId("general-create-wallet")
+                                        Layout.preferredHeight: 38
+                                        Layout.alignment: Qt.AlignHCenter
+                                        icon.source: "qrc:/assets/icon-add-blue.svg"
+                                        onClicked: 
+                                        {
+                                            viewModel.isRecoveryMode = false;
+                                            startWizzardView.push(createWalletEntry);
+                                        }
                                     }
+
+                                    PrimaryButton {
+                                        visible: viewModel.isTrezorEnabled
+                                        id: createNewTrezorWallet
+                                        //% "Create new Trezor wallet"
+                                        text: qsTrId("general-create-trezor-wallet")
+                                        Layout.preferredHeight: 38
+                                        Layout.alignment: Qt.AlignHCenter
+                                        icon.source: "qrc:/assets/icon-add-blue.svg"
+                                        onClicked: 
+                                        {
+                                            viewModel.isRecoveryMode = false;
+                                            startWizzardView.push(createTrezorWalletEntry);
+                                        }
+                                    }                                
                                 }
                             }
 
@@ -794,6 +814,14 @@ Item
                         Layout.minimumHeight: 35
                     }
                 }
+            }
+        }
+
+        Component {
+            id: createTrezorWalletEntry
+            Rectangle
+            {
+                color: Style.background_main               
             }
         }
 
