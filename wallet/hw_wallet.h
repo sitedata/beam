@@ -24,8 +24,6 @@ class DeviceManager;
 
 namespace beam
 {
-    class HWWalletImpl;
-
     class HWWallet
     {
     public:
@@ -62,7 +60,6 @@ namespace beam
         ECC::Scalar signTransactionSync(const std::vector<Key::IDV>& inputs, const std::vector<Key::IDV>& outputs, const TxData& tx) const;
 
     private:
-        std::shared_ptr<HWWalletImpl> m_impl;
         std::shared_ptr<Client> m_client;
         std::shared_ptr<DeviceManager> m_trezor;
     };

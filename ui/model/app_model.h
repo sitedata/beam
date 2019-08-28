@@ -32,6 +32,7 @@ public:
     ~AppModel() override;
 
     bool createWallet(const beam::SecString& seed, const beam::SecString& pass);
+    bool createTrezorWallet(std::shared_ptr<ECC::HKdfPub> ownerKey, const beam::SecString& pass);
     bool openWallet(const beam::SecString& pass);
     bool checkWalletPassword(const beam::SecString& pass) const;
     void changeWalletPassword(const std::string& pass);

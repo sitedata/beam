@@ -40,6 +40,7 @@ public:
     void setAllowedBeamMWLinks(bool value);
 
     void initModel(WalletModel::Ptr model);
+    std::string getTrezorWalletStorage() const;
     std::string getWalletStorage() const;
     std::string getAppDataPath() const;
     void reportProblem();
@@ -66,6 +67,7 @@ public:
     static const char* LogsFolder;
     static const char* SettingsFile;
     static const char* WalletDBFile;
+    static const char* TrezorWalletDBFile;
     static const char* NodeDBFile;
 
     void applyChanges();

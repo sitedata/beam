@@ -81,7 +81,8 @@ namespace
                     }
                 }
 
-                if (it->path().filename() == WalletSettings::WalletDBFile)
+                if (it->path().filename() == WalletSettings::WalletDBFile 
+                    || it->path().filename() == WalletSettings::TrezorWalletDBFile)
                 {
                     walletDBs.push_back(it->path());
                 }
@@ -256,6 +257,9 @@ StartViewModel::StartViewModel()
     , m_hwWallet(make_shared<beam::HWWallet>())
     , m_trezorTimer(this)
     , m_trezorThread(m_hwWallet)
+// !TODO: test data, don't forget to remove
+//    , m_ownerKeyEncrypted("Ah63SvK3Fuf1JmN8isyw+tgXsgChP30SYAUIV5BNG4C02u2T5abyd8p/0h3LyLP92OZLVDE3iXP6pWNfw13W+ygJMFbrPk4jV3A3kw2pfydfE2vetIQaN0ziBXEmVbZ1BWBEh+Vgd7LXZ0bv")
+//    , m_ownerKeyPass("1")
 #endif
 {
     if (!walletExists())
@@ -279,7 +283,8 @@ StartViewModel::~StartViewModel()
 
 bool StartViewModel::walletExists() const
 {
-    return wallet::WalletDB::isInitialized(AppModel::getInstance().getSettings().getWalletStorage());
+    return wallet::WalletDB::isInitialized(AppModel::getInstance().getSettings().getWalletStorage()) 
+        || wallet::WalletDB::isInitialized(AppModel::getInstance().getSettings().getTrezorWalletStorage());
 }
 
 bool StartViewModel::isTrezorEnabled() const
@@ -353,7 +358,8 @@ void StartViewModel::onTrezorOwnerKeyImported(const QString& key)
 
 void StartViewModel::startOwnerKeyImporting()
 {
-    m_trezorThread.start();
+    if(m_ownerKeyEncrypted.empty())
+        m_trezorThread.start();
 }
 
 #include "core/block_rw.h"
@@ -372,6 +378,11 @@ bool StartViewModel::isPinValid(const QString& pin)
     std::shared_ptr<ECC::HKdfPub> pKdf = std::make_shared<ECC::HKdfPub>();
 
     return ks.Import(*pKdf);
+}
+
+void StartViewModel::setOwnerKeyPin(const QString& pin)
+{
+    m_ownerKeyPass = pin.toStdString();
 }
 
 bool StartViewModel::getIsRecoveryMode() const
@@ -598,6 +609,23 @@ void StartViewModel::resetPhrases()
 
 bool StartViewModel::createWallet()
 {
+#if defined(BEAM_HW_WALLET)
+    if (!m_ownerKeyEncrypted.empty())
+    {
+        assert(!m_ownerKeyPass.empty());
+
+        KeyString ks;
+        ks.SetPassword(Blob(m_ownerKeyPass.data(), static_cast<uint32_t>(m_ownerKeyPass.size())));
+
+        ks.m_sRes = m_ownerKeyEncrypted;
+
+        std::shared_ptr<ECC::HKdfPub> ownerKdf = std::make_shared<ECC::HKdfPub>();
+
+        SecString sectretPass = m_password;
+        return ks.Import(*ownerKdf) && AppModel::getInstance().createTrezorWallet(ownerKdf, sectretPass);
+    }
+#endif
+
     if (m_isRecoveryMode)
     {
         assert(m_generatedPhrases.size() == static_cast<size_t>(m_recoveryPhrases.size()));
@@ -694,6 +722,8 @@ void StartViewModel::deleteCurrentWalletDB()
     {
         auto pathToDB = pathFromStdString(AppModel::getInstance().getSettings().getWalletStorage());
         boost::filesystem::remove(pathToDB);
+
+        // !TODO: delete trezor DB if exists
     }
     catch (std::exception& e)
     {
@@ -705,6 +735,8 @@ void StartViewModel::migrateWalletDB(const QString& path)
 {
     try
     {
+        // !TODO: check the same for Trezor DB
+
         auto pathSrc = pathFromStdString(path.toStdString());
         auto pathDst = pathFromStdString(AppModel::getInstance().getSettings().getWalletStorage());
         boost::filesystem::copy_file(pathSrc, pathDst);

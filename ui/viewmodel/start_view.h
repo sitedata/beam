@@ -184,6 +184,7 @@ public:
     Q_INVOKABLE void openFolder(const QString& path) const;
     Q_INVOKABLE void startOwnerKeyImporting();
     Q_INVOKABLE bool isPinValid(const QString& pin);
+    Q_INVOKABLE void setOwnerKeyPin(const QString& pin);
 
 signals:
     void walletExistsChanged();
@@ -229,6 +230,7 @@ private:
     bool m_isTrezorConnected = false;
     TrezorThread m_trezorThread;
     std::string m_ownerKeyEncrypted;
+    std::string m_ownerKeyPass;
 #endif
 };
 

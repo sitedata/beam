@@ -1275,9 +1275,7 @@ Item
                             text: qsTrId("general-back")
                             enabled: viewModel.isOwnerKeyImported
                             icon.source: "qrc:/assets/icon-back.svg"
-                            onClicked: {
-                                startWizzardView.pop();
-                            }
+                            onClicked: startWizzardView.pop();
                         }
 
                         PrimaryButton {
@@ -1286,7 +1284,10 @@ Item
                             text: qsTrId("general-next")
                             enabled: viewModel.isOwnerKeyImported && viewModel.isPinValid(trezorPin.text)
                             icon.source: "qrc:/assets/icon-next-blue.svg"
-                            //onClicked: startWizzardView.push(create);
+                            onClicked: {
+                                viewModel.setOwnerKeyPin(trezorPin.text)
+                                startWizzardView.push(create)
+                            }
                         }
                     }
 

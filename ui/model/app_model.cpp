@@ -20,6 +20,7 @@
 #include <QApplication>
 #include <QTranslator>
 #include "wallet/local_private_key_keeper.h"
+#include "wallet/trezor_key_keeper.h"
 
 using namespace beam;
 using namespace beam::wallet;
@@ -77,13 +78,54 @@ bool AppModel::createWallet(const SecString& seed, const SecString& pass)
     return true;
 }
 
+#include "core/block_rw.h"
+
+bool AppModel::createTrezorWallet(std::shared_ptr<ECC::HKdfPub> ownerKey, const beam::SecString& pass)
+{
+    // !TODO: copypasted from createWallet, pls do refactoring and backup DB
+    const auto dbFilePath = m_settings.getTrezorWalletStorage();
+    const auto wasInitialized = WalletDB::isInitialized(dbFilePath);
+    m_db.reset();
+
+    if (wasInitialized)
+    {
+        // it seems that we are trying to restore or login to another wallet.
+        // Rename/backup existing db
+        boost::filesystem::path p = dbFilePath;
+        boost::filesystem::path newName = dbFilePath + "_" + to_string(getTimestamp());
+        boost::filesystem::rename(p, newName);
+    }
+
+    m_db = WalletDB::initWithTrezor(dbFilePath, ownerKey, pass, m_walletReactor);
+    if (!m_db) return false;
+
+    m_keyKeeper = std::make_shared<TrezorKeyKeeper>();
+
+    // generate default address
+    WalletAddress address = storage::createAddress(*m_db, m_keyKeeper);
+    address.m_label = "default";
+    m_db->saveAddress(address);
+
+    onWalledOpened(pass);
+    return true;
+}
+
 bool AppModel::openWallet(const beam::SecString& pass)
 {
     assert(m_db == nullptr);
-    m_db = WalletDB::open(m_settings.getWalletStorage(), pass, m_walletReactor);
-    if (!m_db) return false;
 
-    m_keyKeeper = std::make_shared<LocalPrivateKeyKeeper>(m_db);
+    if (WalletDB::isInitialized(m_settings.getWalletStorage()))
+    {
+        m_db = WalletDB::open(m_settings.getWalletStorage(), pass, m_walletReactor);
+        if (!m_db) return false;
+        m_keyKeeper = std::make_shared<LocalPrivateKeyKeeper>(m_db);
+    }
+    else if (WalletDB::isInitialized(m_settings.getTrezorWalletStorage()))
+    {
+        m_db = WalletDB::open(m_settings.getTrezorWalletStorage(), pass, m_walletReactor);
+        if (!m_db) return false;
+        m_keyKeeper = std::make_shared<TrezorKeyKeeper>();
+    }
 
     onWalledOpened(pass);
     return true;
@@ -124,6 +166,7 @@ void AppModel::resetWalletImpl()
     m_db.reset();
 
     fsutils::remove(getSettings().getWalletStorage());
+    fsutils::remove(getSettings().getTrezorWalletStorage());
     fsutils::remove(getSettings().getLocalNodeStorage());
 
     emit walletReseted();
